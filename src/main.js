@@ -20,7 +20,7 @@ import {
 } from './tournament.js';
 
 let state = loadState();
-let adminOpen = true;
+let adminOpen = false;
 let wakeLock = null;
 let audioCtx = null;
 
@@ -29,7 +29,14 @@ const app = document.querySelector('#app');
 function loadState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? normalizeState(JSON.parse(raw)) : createDefaultState();
+    if (!raw) return createDefaultState();
+    const loaded = normalizeState(JSON.parse(raw));
+    if (loaded.tournamentName === 'Why So Serious? Shootout') {
+      loaded.tournamentName = 'Poker Tournament Clock';
+      loaded.venue = 'Setup öffnen und eigenes Turnier einstellen';
+      loaded.log = ['Neue neutrale Tournament Clock geladen.', ...(loaded.log || [])];
+    }
+    return loaded;
   } catch {
     return createDefaultState();
   }
@@ -85,7 +92,7 @@ function render() {
             <h1>${escapeHtml(state.tournamentName)}</h1>
             <p class="venue">${escapeHtml(state.venue)}</p>
           </div>
-          <button class="ghost hide-on-tv" data-action="toggle-admin">${adminOpen ? 'Admin ausblenden' : 'Admin öffnen'}</button>
+          <button class="ghost hide-on-tv setup-toggle" data-action="toggle-admin">${adminOpen ? 'Setup schließen' : 'Setup öffnen'}</button>
         </header>
 
         <section class="main-card">
@@ -98,12 +105,17 @@ function render() {
               <div class="blind"><span>Ante</span><strong>${formatNumber(level.ante)}</strong></div>
             `}
           </div>
-          <div class="controls hide-on-tv">
-            <button class="primary" data-action="toggle-run">${state.running ? 'Pause' : 'Start'}</button>
-            <button data-action="prev-level">← Level</button>
-            <button data-action="next-level">Level →</button>
-            <button data-action="reset-level">Level reset</button>
-            <button data-action="fullscreen">Fullscreen</button>
+          <div class="clock-actions">
+            <button class="mega-start ${state.running ? 'running' : ''}" data-action="toggle-run" aria-label="${state.running ? 'Clock pausieren' : 'Clock starten'}">
+              <span>${state.running ? 'Pause' : 'Start Clock'}</span>
+              <small>${state.running ? 'Turnier läuft' : 'Tippen zum Starten'}</small>
+            </button>
+            <div class="quick-controls">
+              <button data-action="prev-level">← Level</button>
+              <button data-action="reset-level">Reset</button>
+              <button data-action="next-level">Level →</button>
+              <button data-action="fullscreen">TV Fullscreen</button>
+            </div>
           </div>
         </section>
 
@@ -136,8 +148,8 @@ function render() {
       <aside class="admin-panel hide-on-tv">
         <div class="admin-head">
           <div>
-            <p class="eyebrow">Admin</p>
-            <h2>Turnier einstellen</h2>
+            <p class="eyebrow">Setup</p>
+            <h2>Turnier konfigurieren</h2>
           </div>
           <button class="ghost" data-action="toggle-admin">×</button>
         </div>
@@ -275,6 +287,16 @@ app.addEventListener('change', async (event) => {
     const text = await file.text();
     setState({ ...normalizeState(JSON.parse(text)), log: ['Struktur importiert.', ...state.log] });
   }
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.code !== 'Space') return;
+  const editing = ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName);
+  if (editing) return;
+  event.preventDefault();
+  const running = !state.running;
+  setState({ ...state, running, startedAt: state.startedAt || Date.now(), log: [running ? 'Clock gestartet.' : 'Clock pausiert.', ...state.log] });
+  if (running) requestWakeLock();
 });
 
 setInterval(() => {

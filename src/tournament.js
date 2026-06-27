@@ -15,8 +15,8 @@ export const defaultLevels = [
 
 export function createDefaultState() {
   return {
-    tournamentName: 'Why So Serious? Shootout',
-    venue: 'Private Game Night',
+    tournamentName: 'Poker Tournament Clock',
+    venue: 'Setup öffnen und eigenes Turnier einstellen',
     startedAt: null,
     running: false,
     levelIndex: 0,

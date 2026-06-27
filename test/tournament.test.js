@@ -16,6 +16,12 @@ import {
 } from '../src/tournament.js';
 
 describe('tournament clock engine', () => {
+  it('starts from a neutral tournament clock instead of a copied example title', () => {
+    const state = createDefaultState();
+    expect(state.tournamentName).toBe('Poker Tournament Clock');
+    expect(state.venue).toContain('Setup öffnen');
+  });
+
   it('formats tournament clock values', () => {
     expect(formatClock(0)).toBe('00:00');
     expect(formatClock(8 * 60 + 15)).toBe('08:15');
